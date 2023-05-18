@@ -10,7 +10,7 @@
     <img src="photos/Screenshot.jpg" alt="screenshot">
   </a>
 
-  <h3 align="center">Road sign vsualizer</h3>
+  <h3 align="center">Road Sign Visualizer</h3>
 
    <p align="center">
     Simple python program for displaying images
