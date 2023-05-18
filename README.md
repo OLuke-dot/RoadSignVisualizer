@@ -60,7 +60,7 @@ This is a simple program based on python for displaying multiple amount of image
 ### Prerequisites
 
 In order for the program to work, you should have python pillow module. Just use the command presented below:
-* Pillow
+Pillow
   ```sh
  python3 -m pip install --upgrade pip
  python3 -m pip install --upgrade PIL
