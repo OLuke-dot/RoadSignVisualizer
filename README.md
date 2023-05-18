@@ -86,9 +86,9 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Your Name - [@your_twitter](https://twitter.com/your_username) - OLuke-dot@protonmail.com
+OLuke-dot@protonmail.com
 
-My other projects: [https://github.com/OLuke-dot?tab=repositories](https://github.com/OLuke-dot?tab=repositories)
+My other projects: [https://github.com/OLuke-dot](https://github.com/OLuke-dot?tab=repositories)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
