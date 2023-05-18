@@ -8,7 +8,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/OLuke-dot/RoadSignVisualizer">
-    <img src="photos/Screenshot.jpg" alt="screenshot" width="80" height="80">
+    <img src="photos/Screenshot.jpg" alt="screenshot">
   </a>
 
   <h3 align="center">Road sign vsualizer</h3>
