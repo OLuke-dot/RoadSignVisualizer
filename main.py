@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from PIL import ImageTk, Image
 from datetime import datetime
+#import subprocess
 
 
 class SlideshowConfig:
@@ -270,6 +271,12 @@ class ImageSlider:
             writer.writerows(self.displayed_sets)
 
         messagebox.showinfo("Export Successful", "The displayed sets have been exported to a CSV file.")
+
+        # Open file explorer at the location of the CSV file
+        try:
+            os.startfile(os.path.dirname(csv_file_path))
+        except Exception as e:
+            messagebox.showwarning("Error Opening File Explorer", f"An error occurred while opening File Explorer: {e}")
 
     def exit_program(self):
         self.root.quit()
