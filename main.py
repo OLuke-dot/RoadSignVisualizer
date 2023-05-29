@@ -24,6 +24,7 @@ class ImageSlider:
         self.slideshow_queue = []
         self.displayed_sets = []
         self.export_folder = os.path.dirname(os.path.abspath(__file__))
+        self.json_folder = os.path.dirname(os.path.abspath(__file__))
         self.logo_path = os.path.join(self.export_folder, 'photos\wut-logo-196733998.png')  # Path to logo image
         self.total_time = 0  # Total time for all intervals in the queue
 
@@ -31,7 +32,7 @@ class ImageSlider:
 
     def setup_gui(self):
         self.root.title("Road sign image visualizer")
-        self.root.geometry("800x410")
+        self.root.geometry("800x510")
         
         # Changing icon of the window
         self.icon = tk.PhotoImage(file=os.path.join(self.export_folder, 'photos\icon.png'))
@@ -71,6 +72,19 @@ class ImageSlider:
 
         export_button = ttk.Button(export_frame, text="Change", command=self.select_export_folder)
         export_button.pack(side=tk.LEFT)
+
+        json_folder_label = ttk.Label(main_frame, text="JSON Folder:")
+        json_folder_label.grid(row=2, column=0, sticky=tk.E)
+
+        json_frame = ttk.Frame(main_frame, padding=(0, 5))
+        json_frame.grid(row=2, column=1, columnspan=8, sticky=tk.EW)
+
+        self.json_folder_entry = ttk.Entry(json_frame, state="readonly", width=80)
+        self.json_folder_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.json_folder_entry.insert(0, self.json_folder)
+
+        json_button = ttk.Button(json_frame, text="Change", command=self.select_json_folder)
+        json_button.pack(side=tk.LEFT)
 
         interval_label = ttk.Label(main_frame, text="Interval (in milliseconds):")
         interval_label.grid(row=4, column=1, sticky=tk.E)
@@ -125,6 +139,15 @@ class ImageSlider:
             self.export_entry.delete(0, tk.END)
             self.export_entry.insert(0, export_folder)
             self.export_entry.configure(state="readonly")
+    
+    def select_json_folder(self):
+        json_folder = filedialog.askdirectory()
+        if json_folder:
+            self.json_folder = json_folder
+            self.json_folder_entry.configure(state="normal")
+            self.json_folder_entry.delete(0, tk.END)
+            self.json_folder_entry.insert(0, json_folder)
+            self.json_folder_entry.configure(state="readonly")
 
     def resize_image(self, image_path, size):
         image = Image.open(image_path)
@@ -202,7 +225,7 @@ class ImageSlider:
     def perform_next_slideshow(self):
         if not self.slideshow_queue:
             self.stop_slideshow()
-            self.export_displayed_sets()
+            self.export_results()
             self.queue_listbox.delete(0, tk.END)  # Clear the queue from the GUI
             return
 
@@ -269,21 +292,27 @@ class ImageSlider:
         if result:
             self.stop_slideshow()
 
-    def export_displayed_sets(self):
-        if not self.displayed_sets:
-            return
+    def export_results(self):
+        file_path = os.path.join(self.export_folder, "slideshow_results.csv")
 
-        export_folder = self.export_folder
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        file_name = f"displayed_sets_{timestamp}.csv"
-        file_path = os.path.join(export_folder, file_name)
+        with open(file_path, "w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["Image", "Width", "Height", "Is Pano", "Labels"])
 
-        with open(file_path, mode='w', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(['Display Time', 'Image Filename', 'Interval (s)', 'Parent Folder'])
-            writer.writerows(self.displayed_sets)
+            for config in self.displayed_sets:
+                for image_path in self.images[:self.num_photos]:
+                    image_name = os.path.basename(image_path)
+                    image_width, image_height = self.get_image_size(image_path)
+                    is_pano = self.is_pano(image_path)
+                    labels = self.get_labels(image_name, config.json_folder)
+
+                    writer.writerow([image_name, image_width, image_height, is_pano, labels])
+
+                self.images = self.images[self.num_photos:]
 
         messagebox.showinfo("Export Successful", f"The displayed sets have been exported to: {file_path}")
+
+
 
     def exit_program(self):
         result = messagebox.askyesno("Confirm Exit", "Are you sure you want to exit?")
