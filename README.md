@@ -3,15 +3,14 @@
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
 
 <br />
 <div align="center">
   <a href="https://github.com/OLuke-dot/RoadSignVisualizer">
-    <img src="photos/Screenshot.jpg" alt="screenshot" width="80" height="80">
+    <img src="photos/Screenshot.jpg" alt="screenshot">
   </a>
 
-  <h3 align="center">Road sign vsualizer</h3>
+  <h3 align="center">Road Sign Visualizer</h3>
 
    <p align="center">
     Simple python program for displaying images
@@ -87,9 +86,9 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Your Name - [@your_twitter](https://twitter.com/your_username) - OLuke-dot@protonmail.com
+OLuke-dot@protonmail.com
 
-My other projects: [https://github.com/OLuke-dot?tab=repositories](https://github.com/OLuke-dot?tab=repositories)
+My other projects: [https://github.com/OLuke-dot](https://github.com/OLuke-dot?tab=repositories)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
