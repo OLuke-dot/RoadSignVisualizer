@@ -5,8 +5,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from PIL import ImageTk, Image
 from datetime import datetime
-#import subprocess
-
+from threading import Thread
 
 class SlideshowConfig:
     def __init__(self, folder_path, interval, num_photos):
@@ -21,11 +20,12 @@ class ImageSlider:
         self.images = []
         self.current_image = None
         self.interval = 2000  # Default interval in milliseconds
-        self.num_photos = None
+        self.num_photos = 20
         self.slideshow_queue = []
         self.displayed_sets = []
         self.export_folder = os.path.dirname(os.path.abspath(__file__))
         self.logo_path = os.path.join(self.export_folder, 'photos\wut-logo-196733998.png')  # Path to logo image
+        self.total_time = 0  # Total time for all intervals in the queue
 
         self.setup_gui()
 
@@ -34,7 +34,7 @@ class ImageSlider:
         self.root.geometry("800x410")
         
         # Changing icon of the window
-        self.icon=tk.PhotoImage(file=os.path.join(self.export_folder, 'photos\icon.png'))
+        self.icon = tk.PhotoImage(file=os.path.join(self.export_folder, 'photos\icon.png'))
         self.root.iconphoto(True, self.icon)
 
         # Top left logo placeholder
@@ -51,7 +51,7 @@ class ImageSlider:
         folder_label.grid(row=0, column=0, sticky=tk.E)
 
         folder_frame = ttk.Frame(main_frame, padding=(0, 5))
-        folder_frame.grid(row=0, column=1,columnspan=8, sticky=tk.EW)
+        folder_frame.grid(row=0, column=1, columnspan=8, sticky=tk.EW)
 
         self.folder_entry = ttk.Entry(folder_frame, state="readonly", width=80)
         self.folder_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
@@ -63,7 +63,7 @@ class ImageSlider:
         export_label.grid(row=1, column=0, sticky=tk.E)
 
         export_frame = ttk.Frame(main_frame, padding=(0, 5))
-        export_frame.grid(row=1, column=1,columnspan=8, sticky=tk.EW)
+        export_frame.grid(row=1, column=1, columnspan=8, sticky=tk.EW)
 
         self.export_entry = ttk.Entry(export_frame, state="readonly", width=80)
         self.export_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
@@ -72,17 +72,19 @@ class ImageSlider:
         export_button = ttk.Button(export_frame, text="Change", command=self.select_export_folder)
         export_button.pack(side=tk.LEFT)
 
-        interval_label = ttk.Label(main_frame, text="Interval (in seconds):")
+        interval_label = ttk.Label(main_frame, text="Interval (in milliseconds):")
         interval_label.grid(row=4, column=1, sticky=tk.E)
 
         self.interval_entry = ttk.Entry(main_frame, width=6)
         self.interval_entry.grid(row=4, column=2, sticky=tk.S)
+        self.interval_entry.insert(0, str(self.interval))
 
         num_photos_label = ttk.Label(main_frame, text="Number of Photos:")
         num_photos_label.grid(row=4, column=3, sticky=tk.E)
 
         self.num_photos_entry = ttk.Entry(main_frame, width=6)
         self.num_photos_entry.grid(row=4, column=4, sticky=tk.S)
+        self.num_photos_entry.insert(0, str(self.num_photos))
 
         add_button = ttk.Button(main_frame, text="Add to Queue", command=self.add_to_queue, width=30)
         add_button.grid(row=6, column=0, columnspan=8, sticky=tk.NSEW, pady=(10, 0))
@@ -102,6 +104,9 @@ class ImageSlider:
         exit_button = ttk.Button(main_frame, text="Exit", command=self.exit_program)
         exit_button.grid(row=13, column=7, sticky=tk.E, pady=(10, 0))
 
+        self.timer_label = ttk.Label(main_frame, text="Total Time: 00:00:00")
+        self.timer_label.grid(row=14, column=0, columnspan=8, pady=(10, 0))
+
     def select_folder(self):
         folder_path = filedialog.askdirectory()
         if folder_path:
@@ -120,10 +125,10 @@ class ImageSlider:
             self.export_entry.delete(0, tk.END)
             self.export_entry.insert(0, export_folder)
             self.export_entry.configure(state="readonly")
-    
+
     def resize_image(self, image_path, size):
         image = Image.open(image_path)
-        image = image.resize(size, Image.ANTIALIAS)
+        image = image.resize(size, Image.Resampling.LANCZOS)
         photo = ImageTk.PhotoImage(image)
         return photo
 
@@ -140,14 +145,14 @@ class ImageSlider:
 
     def add_to_queue(self):
         folder_path = self.folder_entry.get()
-        interval_str = self.interval_entry.get().strip()
+        interval = self.interval_entry.get().strip()
         num_photos_str = self.num_photos_entry.get().strip()
 
         if not folder_path:
             messagebox.showerror("Invalid Folder", "Please select a folder.")
             return
 
-        if not interval_str.isdigit():
+        if not interval.isdigit():
             messagebox.showerror("Invalid Interval", "Please enter a valid numeric interval.")
             return
 
@@ -159,14 +164,18 @@ class ImageSlider:
         else:
             num_photos = None
 
-        interval = int(interval_str) * 1000  # Convert to milliseconds
-
         config = SlideshowConfig(folder_path, interval, num_photos)
         self.slideshow_queue.append(config)
 
-        self.queue_listbox.insert(tk.END, f"{folder_path} (Interval: {interval_str}s, Photos: {num_photos_str})")
+        self.queue_listbox.insert(tk.END, f"{folder_path} (Interval: {interval}ms, Photos: {num_photos_str})")
 
         self.clear_inputs()
+
+        # Update total time
+        self.total_time += int(interval) / 1000  # Convert interval to seconds
+
+        # Update timer label
+        self.update_timer_label()
 
     def clear_inputs(self):
         self.folder_entry.configure(state="normal")
@@ -242,9 +251,11 @@ class ImageSlider:
         image_filename = os.path.basename(random_image)
         parent_folder = os.path.basename(os.path.dirname(random_image))
 
-        self.displayed_sets.append([display_time, image_filename, self.interval / 1000, parent_folder])
+        interval_seconds = int(self.interval) // 1000  # Convert interval to seconds
+        self.displayed_sets.append([display_time, image_filename, interval_seconds, parent_folder])
 
-        self.slideshow_window.after(self.interval, self.show_next_image)
+        self.slideshow_window.after(int(self.interval), self.show_next_image)  # Convert interval to milliseconds
+
 
     def stop_slideshow(self):
         if self.slideshow_window:
@@ -260,29 +271,36 @@ class ImageSlider:
 
     def export_displayed_sets(self):
         if not self.displayed_sets:
-            messagebox.showwarning("No Sets Displayed", "No sets were displayed yet.")
             return
 
-        csv_file_path = os.path.join(self.export_folder, f"sets_{datetime.now().strftime('%Y%m%d%H%M%S')}.csv")
+        export_folder = self.export_folder
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        file_name = f"displayed_sets_{timestamp}.csv"
+        file_path = os.path.join(export_folder, file_name)
 
-        with open(csv_file_path, mode='w', newline='') as file:
+        with open(file_path, mode='w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(["Display Time", "Image Filename", "Interval (s)", "Parent Folder"])
+            writer.writerow(['Display Time', 'Image Filename', 'Interval (s)', 'Parent Folder'])
             writer.writerows(self.displayed_sets)
 
-        messagebox.showinfo("Export Successful", "The displayed sets have been exported to a CSV file.")
-
-        # Open file explorer at the location of the CSV file
-        try:
-            os.startfile(os.path.dirname(csv_file_path))
-        except Exception as e:
-            messagebox.showwarning("Error Opening File Explorer", f"An error occurred while opening File Explorer: {e}")
+        messagebox.showinfo("Export Successful", f"The displayed sets have been exported to: {file_path}")
 
     def exit_program(self):
-        self.root.quit()
+        result = messagebox.askyesno("Confirm Exit", "Are you sure you want to exit?")
+        if result:
+            self.root.destroy()
+    
+    def update_timer_label(self):
+        total_time_str = self.format_time(self.total_time)
+        self.timer_label.configure(text=f"Total Time: {total_time_str}")
+
+    def format_time(self, seconds):
+        minutes, seconds = divmod(seconds, 60)
+        hours, minutes = divmod(minutes, 60)
+        return f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
 
 
 if __name__ == "__main__":
     root = tk.Tk()
-    ImageSlider(root)
+    app = ImageSlider(root)
     root.mainloop()
